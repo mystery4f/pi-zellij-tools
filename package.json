@@ -1,0 +1,53 @@
+{
+  "name": "pi-zellij-tools",
+  "version": "0.1.0",
+  "description": "Pi extension tools for launching independent Pi processes in Zellij panes.",
+  "type": "module",
+  "packageManager": "bun@1.3.13",
+  "license": "MIT",
+  "author": {
+    "name": "x1any",
+    "url": "https://github.com/x1any"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/x1any/pi-zellij-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/x1any/pi-zellij-tools/issues"
+  },
+  "homepage": "https://github.com/x1any/pi-zellij-tools#readme",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "zellij",
+    "coding-agent"
+  ],
+  "files": [
+    "extensions",
+    "prompts",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/zellij-pi.ts"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "bun-types": "*",
+    "typescript": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "bun pm pack --dry-run"
+  }
+}
