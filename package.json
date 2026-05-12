@@ -23,15 +23,19 @@
     "zellij",
     "coding-agent"
   ],
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
   "files": [
-    "extensions",
+    "index.ts",
     "prompts",
     "README.md",
     "LICENSE"
   ],
   "pi": {
     "extensions": [
-      "./extensions/zellij-pi.ts"
+      "./index.ts"
     ],
     "prompts": [
       "./prompts"
