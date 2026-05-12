@@ -1,7 +1,7 @@
 {
   "name": "pi-zellij-tools",
   "version": "0.1.0",
-  "description": "Pi extension tools for launching independent Pi processes in Zellij panes.",
+  "description": "Pi extension tools for running shell commands and independent Pi sessions in terminal targets.",
   "type": "module",
   "packageManager": "bun@1.3.13",
   "license": "MIT",
@@ -29,6 +29,8 @@
   },
   "files": [
     "index.ts",
+    "src",
+    "tests",
     "prompts",
     "README.md",
     "LICENSE"
@@ -52,6 +54,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "pack:dry-run": "bun pm pack --dry-run"
   }
 }
