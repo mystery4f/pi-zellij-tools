@@ -1,4 +1,5 @@
 import type { TerminalBackend, TerminalTarget, OpenCommandResult } from "./types.js";
+import type { AgentConfig } from "../agents/discovery.js";
 
 const DEFAULT_TARGET: TerminalTarget = { type: "pane" };
 
@@ -66,4 +67,60 @@ export async function spawnPi(
   );
 
   return { ...result, cwd, name, model, thinkingLevel };
+}
+
+export interface SpawnAgentOptions {
+  agent: AgentConfig;
+  task?: string;
+  cwd?: string;
+  name?: string;
+  target?: TerminalTarget;
+}
+
+export async function spawnAgent(
+  backend: TerminalBackend,
+  options: SpawnAgentOptions,
+  signal?: AbortSignal,
+): Promise<
+  OpenCommandResult & {
+    cwd: string;
+    name: string;
+    agent: string;
+    source: AgentConfig["source"];
+    model?: string;
+    thinkingLevel?: string;
+    tools?: string[];
+  }
+> {
+  const { agent } = options;
+  const cwd = options.cwd ?? process.cwd();
+  const name = options.name ?? `agent-${agent.name}`;
+  const target = options.target ?? DEFAULT_TARGET;
+
+  const args: string[] = ["pi"];
+
+  if (agent.model) args.push("--model", agent.model.trim());
+  if (agent.thinkingLevel) args.push("--thinking", agent.thinkingLevel);
+  if (agent.tools?.length) args.push("--tools", agent.tools.join(","));
+  if (agent.systemPrompt.trim())
+    args.push("--append-system-prompt", agent.systemPrompt.trim());
+
+  const task = options.task?.trim();
+  if (task) args.push(`Task: ${task}`);
+
+  const result = await backend.openCommand(
+    { cwd, name, target, command: args },
+    signal,
+  );
+
+  return {
+    ...result,
+    cwd,
+    name,
+    agent: agent.name,
+    source: agent.source,
+    model: agent.model,
+    thinkingLevel: agent.thinkingLevel,
+    tools: agent.tools,
+  };
 }

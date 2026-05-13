@@ -9,6 +9,13 @@ export const ThinkingLevelSchema = StringEnum(["off", "minimal", "low", "medium"
   description: "Thinking level passed to pi via --thinking.",
 });
 
+export const AgentScopeSchema = StringEnum(
+  ["user", "project", "both"] as const,
+  {
+    description: 'Which agent directories to use. Default: "user".',
+  },
+);
+
 export const TargetSchema = Type.Object({
   type: Type.Optional(StringEnum(["pane"] as const, { description: 'Target type. Currently only "pane" is supported.' })),
   direction: Type.Optional(TerminalDirectionSchema),
