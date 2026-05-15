@@ -7,6 +7,7 @@ Pi package that adds tools for running shell commands and independent Pi session
 - `run_shell`: runs a shell command in a new terminal target.
 - `spawn_pi`: creates a new terminal target and runs interactive `pi` inside it.
 - `spawn_agent`: starts a preconfigured agent session from `agents/*.md` files.
+- `handoff_agent`: starts a visible child agent with file-backed result handoff.
 - `/run-shell [command]`: slash command to run a shell command.
 - `/spawn-pi [task prompt]`: slash command to spawn a child Pi session.
 - `/spawn-agent <agent-name> [task]`: slash command to start a configured agent.
@@ -96,6 +97,46 @@ Parameters:
 - `cwd`: working directory (defaults to current cwd)
 - `name`: name for the terminal target (defaults to `agent-<agent-name>`)
 - `target`: terminal target configuration
+
+### `handoff_agent`
+
+Start a visible child agent and collect a structured result from `.pi/agent-runs/<runId>/`.
+
+Parameters:
+- `agent` (required): agent name from `agents/*.md`
+- `task` (required): delegated task
+- `context`: filtered relevant context for child
+- `agentScope`: `"user"` (default), `"project"`, or `"both"`
+- `confirmProjectAgents`: confirm project-level agent usage (default: `true`)
+- `cwd`, `name`, `target`: same meaning as other spawn tools
+- `wait`: wait for completion (default: `true`)
+- `timeoutMs`: wait timeout (default: `600000`)
+- `pollIntervalMs`: polling interval (default: `2000`)
+
+Run protocol directory:
+
+```text
+.pi/agent-runs/<runId>/
+  manifest.json
+  task.md
+  context.md
+  instructions.md
+  status.json
+  result.md
+  inbox.md
+  notes.md
+  artifacts/
+```
+
+Timeout behavior:
+
+- `timeoutMs` only controls how long the parent waits for `status.json`.
+- A timeout does not stop or close the child pane.
+- If timeout happens, inspect `.pi/agent-runs/<runId>/status.json` and `result.md`.
+- Child panes are named `handoff-<agent>` by default, or by the provided `name`.
+- Close stale panes manually from Zellij if no longer needed.
+
+Tool returns run metadata and latest status.
 
 ### Target configuration
 
