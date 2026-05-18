@@ -1,32 +1,36 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { parseAgentSelector } from "../src/agents/selector.js";
 
 describe("parseAgentSelector", () => {
   it("parses user prefix", () => {
-    expect(parseAgentSelector("user:reviewer")).toEqual({ scope: "user", agentName: "reviewer" });
+    assert.deepStrictEqual(parseAgentSelector("user:reviewer"), { scope: "user", agentName: "reviewer" });
   });
 
   it("parses proj alias", () => {
-    expect(parseAgentSelector("proj:reviewer")).toEqual({ scope: "project", agentName: "reviewer" });
+    assert.deepStrictEqual(parseAgentSelector("proj:reviewer"), { scope: "project", agentName: "reviewer" });
   });
 
   it("parses project prefix", () => {
-    expect(parseAgentSelector("project:reviewer")).toEqual({ scope: "project", agentName: "reviewer" });
+    assert.deepStrictEqual(parseAgentSelector("project:reviewer"), { scope: "project", agentName: "reviewer" });
   });
 
   it("parses both prefix", () => {
-    expect(parseAgentSelector("both:reviewer")).toEqual({ scope: "both", agentName: "reviewer" });
+    assert.deepStrictEqual(parseAgentSelector("both:reviewer"), { scope: "both", agentName: "reviewer" });
   });
 
   it("supports no prefix", () => {
-    expect(parseAgentSelector("reviewer")).toEqual({ agentName: "reviewer" });
+    assert.deepStrictEqual(parseAgentSelector("reviewer"), { agentName: "reviewer" });
   });
 
   it("supports empty name for list", () => {
-    expect(parseAgentSelector("proj:")).toEqual({ scope: "project", agentName: "" });
+    assert.deepStrictEqual(parseAgentSelector("proj:"), { scope: "project", agentName: "" });
   });
 
   it("throws for unknown prefix", () => {
-    expect(() => parseAgentSelector("foo:reviewer")).toThrow("Unknown agent scope prefix");
+    assert.throws(() => parseAgentSelector("foo:reviewer"), (err: Error) => {
+      assert.ok(err.message.includes("Unknown agent scope prefix"));
+      return true;
+    });
   });
 });

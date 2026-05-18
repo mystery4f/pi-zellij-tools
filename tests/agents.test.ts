@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -48,8 +49,8 @@ function projectAgentsDir(base: string = tempDir): string {
 describe("discoverAgents", () => {
   it("returns empty when no agents directory exists", () => {
     const result = discoverAgents("/tmp/nonexistent-dir-for-test", "user");
-    expect(result.agents).toEqual([]);
-    expect(result.diagnostics).toEqual([]);
+    assert.deepStrictEqual(result.agents, []);
+    assert.deepStrictEqual(result.diagnostics, []);
   });
 
   it("discovers user agents with valid frontmatter", () => {
@@ -67,14 +68,14 @@ You are a reviewer.`,
     );
 
     const result = discoverAgents(tempDir, "user");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("reviewer");
-    expect(result.agents[0].description).toBe("Code reviewer");
-    expect(result.agents[0].model).toBe("claude-sonnet-4-20250514");
-    expect(result.agents[0].thinkingLevel).toBe("high");
-    expect(result.agents[0].tools).toEqual(["read", "grep", "find", "ls"]);
-    expect(result.agents[0].source).toBe("user");
-    expect(result.agents[0].systemPrompt).toBe("You are a reviewer.");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "reviewer");
+    assert.strictEqual(result.agents[0].description, "Code reviewer");
+    assert.strictEqual(result.agents[0].model, "claude-sonnet-4-20250514");
+    assert.strictEqual(result.agents[0].thinkingLevel, "high");
+    assert.deepStrictEqual(result.agents[0].tools, ["read", "grep", "find", "ls"]);
+    assert.strictEqual(result.agents[0].source, "user");
+    assert.strictEqual(result.agents[0].systemPrompt, "You are a reviewer.");
   });
 
   it("skips files without required name/description", () => {
@@ -88,19 +89,19 @@ Some prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toEqual([]);
-    expect(result.diagnostics).toHaveLength(1);
-    expect(result.diagnostics[0].type).toBe("warning");
-    expect(result.diagnostics[0].message).toContain("missing required");
+    assert.deepStrictEqual(result.agents, []);
+    assert.strictEqual(result.diagnostics.length, 1);
+    assert.strictEqual(result.diagnostics[0].type, "warning");
+    assert.ok(result.diagnostics[0].message.includes("missing required"));
   });
 
   it("skips files without frontmatter", () => {
     writeAgentFile(projectAgentsDir(), "no-fm.md", "Just plain text, no frontmatter.");
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toEqual([]);
-    expect(result.diagnostics).toHaveLength(1);
-    expect(result.diagnostics[0].type).toBe("warning");
+    assert.deepStrictEqual(result.agents, []);
+    assert.strictEqual(result.diagnostics.length, 1);
+    assert.strictEqual(result.diagnostics[0].type, "warning");
   });
 
   it("parses tools as comma string", () => {
@@ -116,8 +117,8 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].tools).toEqual(["read", "bash", "grep", "find"]);
+    assert.strictEqual(result.agents.length, 1);
+    assert.deepStrictEqual(result.agents[0].tools, ["read", "bash", "grep", "find"]);
   });
 
   it("parses tools as YAML array", () => {
@@ -136,8 +137,8 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].tools).toEqual(["read", "grep", "find"]);
+    assert.strictEqual(result.agents.length, 1);
+    assert.deepStrictEqual(result.agents[0].tools, ["read", "grep", "find"]);
   });
 
   it("ignores invalid thinkingLevel", () => {
@@ -153,9 +154,9 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].thinkingLevel).toBeUndefined();
-    expect(result.diagnostics.some((d) => d.message.includes("Invalid thinkingLevel"))).toBe(true);
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].thinkingLevel, undefined);
+    assert.ok(result.diagnostics.some((d) => d.message.includes("Invalid thinkingLevel")));
   });
 
   it("detects duplicate names within same scope (keeps first, warns)", () => {
@@ -179,10 +180,10 @@ Second prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
+    assert.strictEqual(result.agents.length, 1);
     // Exactly one agent is kept (order depends on filesystem readdir)
-    expect(["First", "Second"]).toContain(result.agents[0].description);
-    expect(result.diagnostics.some((d) => d.message.includes("Duplicate"))).toBe(true);
+    assert.ok(["First", "Second"].includes(result.agents[0].description));
+    assert.ok(result.diagnostics.some((d) => d.message.includes("Duplicate")));
   });
 
   it("project overrides user in 'both' scope", () => {
@@ -211,13 +212,13 @@ Project prompt.`,
     );
 
     const result = discoverAgents(tempDir, "both");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("shared");
-    expect(result.agents[0].description).toBe("Project version");
-    expect(result.agents[0].source).toBe("project");
-    expect(result.agents[0].systemPrompt).toBe("Project prompt.");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "shared");
+    assert.strictEqual(result.agents[0].description, "Project version");
+    assert.strictEqual(result.agents[0].source, "project");
+    assert.strictEqual(result.agents[0].systemPrompt, "Project prompt.");
     // Should produce override warning
-    expect(result.diagnostics.some((d) => d.message.includes("overrides"))).toBe(true);
+    assert.ok(result.diagnostics.some((d) => d.message.includes("overrides")));
   });
 
   it("sets filePath to absolute path", () => {
@@ -232,8 +233,8 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(path.isAbsolute(result.agents[0].filePath)).toBe(true);
+    assert.strictEqual(result.agents.length, 1);
+    assert.ok(path.isAbsolute(result.agents[0].filePath));
   });
 
   it("discovers project agents from .pi/agents directory", () => {
@@ -249,12 +250,12 @@ You help.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("helper");
-    expect(result.agents[0].description).toBe("A helper agent");
-    expect(result.agents[0].model).toBe("gpt-4");
-    expect(result.agents[0].source).toBe("project");
-    expect(result.agents[0].systemPrompt).toBe("You help.");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "helper");
+    assert.strictEqual(result.agents[0].description, "A helper agent");
+    assert.strictEqual(result.agents[0].model, "gpt-4");
+    assert.strictEqual(result.agents[0].source, "project");
+    assert.strictEqual(result.agents[0].systemPrompt, "You help.");
   });
 
   it("skips non-.md files", () => {
@@ -271,8 +272,8 @@ Good.`,
     writeAgentFile(projectAgentsDir(), "config.json", '{"name":"bad"}');
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("helper");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "helper");
   });
 
   it("empty tools array is treated as undefined", () => {
@@ -288,8 +289,8 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].tools).toBeUndefined();
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].tools, undefined);
   });
 
   it("trims whitespace from model and thinkingLevel", () => {
@@ -306,9 +307,9 @@ Prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].model).toBe("gpt-4");
-    expect(result.agents[0].thinkingLevel).toBe("high");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].model, "gpt-4");
+    assert.strictEqual(result.agents[0].thinkingLevel, "high");
   });
 
   it("handles broken YAML frontmatter gracefully", () => {
@@ -327,11 +328,11 @@ Body text.`,
     // The file should be skipped; may or may not have agents depending on
     // whether parseFrontmatter throws or returns partial data.
     // The key assertion: discoverAgents() must NOT throw.
-    expect(result.agents).toBeInstanceOf(Array);
-    expect(result.diagnostics).toBeInstanceOf(Array);
+    assert.ok(Array.isArray(result.agents));
+    assert.ok(Array.isArray(result.diagnostics));
     // If the parser threw, there should be an error diagnostic
     if (result.agents.length === 0) {
-      expect(result.diagnostics.length).toBeGreaterThan(0);
+      assert.ok(result.diagnostics.length > 0);
     }
   });
 
@@ -349,8 +350,8 @@ Body.`,
 
     // Must not throw
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toBeInstanceOf(Array);
-    expect(result.diagnostics).toBeInstanceOf(Array);
+    assert.ok(Array.isArray(result.agents));
+    assert.ok(Array.isArray(result.diagnostics));
   });
 
   it("discovers both user and project agents", () => {
@@ -375,13 +376,13 @@ Project prompt.`,
     );
 
     const result = discoverAgents(tempDir, "both");
-    expect(result.agents).toHaveLength(2);
+    assert.strictEqual(result.agents.length, 2);
     const names = result.agents.map((a) => a.name).sort();
-    expect(names).toEqual(["proj-agent", "user-agent"]);
+    assert.deepStrictEqual(names, ["proj-agent", "user-agent"]);
     const userA = result.agents.find((a) => a.name === "user-agent")!;
     const projA = result.agents.find((a) => a.name === "proj-agent")!;
-    expect(userA.source).toBe("user");
-    expect(projA.source).toBe("project");
+    assert.strictEqual(userA.source, "user");
+    assert.strictEqual(projA.source, "project");
   });
 
   it("scope 'user' excludes project agents", () => {
@@ -406,9 +407,9 @@ Project prompt.`,
     );
 
     const result = discoverAgents(tempDir, "user");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("user-agent");
-    expect(result.agents[0].source).toBe("user");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "user-agent");
+    assert.strictEqual(result.agents[0].source, "user");
   });
 
   it("scope 'project' excludes user agents", () => {
@@ -433,15 +434,15 @@ Project prompt.`,
     );
 
     const result = discoverAgents(tempDir, "project");
-    expect(result.agents).toHaveLength(1);
-    expect(result.agents[0].name).toBe("proj-agent");
-    expect(result.agents[0].source).toBe("project");
+    assert.strictEqual(result.agents.length, 1);
+    assert.strictEqual(result.agents[0].name, "proj-agent");
+    assert.strictEqual(result.agents[0].source, "project");
   });
 });
 
 describe("formatAgentList", () => {
   it("returns 'No agents found.' for empty array", () => {
-    expect(formatAgentList([])).toBe("No agents found.");
+    assert.strictEqual(formatAgentList([]), "No agents found.");
   });
 
   it("formats agents with source and description", () => {
@@ -450,8 +451,8 @@ describe("formatAgentList", () => {
       { name: "b", description: "Agent B", model: "gpt-4", systemPrompt: "", source: "project", filePath: "/b.md" },
     ];
     const text = formatAgentList(agents);
-    expect(text).toContain("- a (user): Agent A");
-    expect(text).toContain("- b (project): Agent B [model: gpt-4]");
+    assert.ok(text.includes("- a (user): Agent A"));
+    assert.ok(text.includes("- b (project): Agent B [model: gpt-4]"));
   });
 
   it("truncates to maxItems", () => {
@@ -463,6 +464,6 @@ describe("formatAgentList", () => {
       filePath: `/agent-${i}.md`,
     }));
     const text = formatAgentList(agents, 3);
-    expect(text).toContain("... and 2 more.");
+    assert.ok(text.includes("... and 2 more."));
   });
 });

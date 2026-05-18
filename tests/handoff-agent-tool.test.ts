@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -69,13 +70,13 @@ Review prompt.`,
   it("wait=false returns started message and protocol files", async () => {
     const result = await call({ agent: "reviewer", task: "do work", cwd: tempDir, wait: false });
 
-    expect(result.content[0].text).toContain("Started handoff run");
-    expect(result.details.status).toBe("pending");
+    assert.ok(result.content[0].text.includes("Started handoff run"));
+    assert.strictEqual(result.details.status, "pending");
 
     const runDir = result.details.runDir as string;
-    expect(fs.existsSync(runDir)).toBe(true);
+    assert.ok(fs.existsSync(runDir));
     for (const file of ["manifest.json", "task.md", "status.json", "result.md", "context.md", "instructions.md"]) {
-      expect(fs.existsSync(path.join(runDir, file))).toBe(true);
+      assert.ok(fs.existsSync(path.join(runDir, file)));
     }
   });
 
@@ -93,8 +94,8 @@ Review prompt.`,
     }, 20);
 
     const result = await call({ agent: "reviewer", task: "do work", cwd: tempDir, wait: true, timeoutMs: 300, pollIntervalMs: 10 });
-    expect(result.content[0].text).toBe("final answer");
-    expect(result.details.status.status).toBe("done");
+    assert.strictEqual(result.content[0].text, "final answer");
+    assert.strictEqual(result.details.status.status, "done");
   });
 
   it("blocked returns blocked outcome", async () => {
@@ -104,8 +105,8 @@ Review prompt.`,
     }, 20);
 
     const result = await call({ agent: "reviewer", task: "do work", cwd: tempDir, wait: true, timeoutMs: 200, pollIntervalMs: 10 });
-    expect(result.content[0].text).toContain("ended with blocked");
-    expect(result.details.outcome).toBe("blocked");
+    assert.ok(result.content[0].text.includes("ended with blocked"));
+    assert.strictEqual(result.details.outcome, "blocked");
   });
 
   it("error returns error outcome", async () => {
@@ -115,14 +116,14 @@ Review prompt.`,
     }, 20);
 
     const result = await call({ agent: "reviewer", task: "do work", cwd: tempDir, wait: true, timeoutMs: 200, pollIntervalMs: 10 });
-    expect(result.content[0].text).toContain("ended with error");
-    expect(result.details.outcome).toBe("error");
+    assert.ok(result.content[0].text.includes("ended with error"));
+    assert.strictEqual(result.details.outcome, "error");
   });
 
   it("timeout returns timeout outcome", async () => {
     const result = await call({ agent: "reviewer", task: "do work", cwd: tempDir, wait: true, timeoutMs: 50, pollIntervalMs: 10 });
-    expect(result.details.outcome).toBe("timeout");
-    expect(result.content[0].text).toContain("Child may still be running");
+    assert.strictEqual(result.details.outcome, "timeout");
+    assert.ok(result.content[0].text.includes("Child may still be running"));
   });
 
   afterEach(() => {

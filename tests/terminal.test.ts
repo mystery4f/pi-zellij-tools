@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, beforeEach } from "node:test";
+import assert from "node:assert/strict";
 import { ZellijCli, ZellijTerminalBackend } from "../src/terminal/zellij.js";
 import { runShell, spawnPi, spawnAgent } from "../src/terminal/actions.js";
 import type { AgentConfig } from "../src/agents/discovery.js";
@@ -16,23 +17,23 @@ function mockExecutor(result: Partial<CommandExecutorResult> = {}): CommandExecu
 
 describe("ZellijCli.parsePaneId", () => {
   it("parses terminal_1", () => {
-    expect(ZellijCli.parsePaneId("terminal_1")).toBe("terminal_1");
+    assert.strictEqual(ZellijCli.parsePaneId("terminal_1"), "terminal_1");
   });
 
   it("parses plugin_2", () => {
-    expect(ZellijCli.parsePaneId("plugin_2")).toBe("plugin_2");
+    assert.strictEqual(ZellijCli.parsePaneId("plugin_2"), "plugin_2");
   });
 
   it("returns null when no match", () => {
-    expect(ZellijCli.parsePaneId("no pane here")).toBeNull();
+    assert.strictEqual(ZellijCli.parsePaneId("no pane here"), null);
   });
 
   it("does not match arbitrary prefix like foo_1", () => {
-    expect(ZellijCli.parsePaneId("foo_1")).toBeNull();
+    assert.strictEqual(ZellijCli.parsePaneId("foo_1"), null);
   });
 
   it("extracts first match from mixed output", () => {
-    expect(ZellijCli.parsePaneId("pane created: terminal_42")).toBe("terminal_42");
+    assert.strictEqual(ZellijCli.parsePaneId("pane created: terminal_42"), "terminal_42");
   });
 });
 
@@ -55,11 +56,15 @@ describe("ZellijTerminalBackend", () => {
       return { code: 0, stdout: "", stderr: "", killed: false };
     });
 
-    await expect(
-      backend.openCommand({ cwd: "/tmp", name: "test", target: { type: "pane" }, command: ["echo", "hi"] }),
-    ).rejects.toThrow("requires the current Pi session to be running inside Zellij");
+    await assert.rejects(
+      () => backend.openCommand({ cwd: "/tmp", name: "test", target: { type: "pane" }, command: ["echo", "hi"] }),
+      (err: Error) => {
+        assert.ok(err.message.includes("requires the current Pi session to be running inside Zellij"));
+        return true;
+      },
+    );
 
-    expect(called).toBe(false);
+    assert.strictEqual(called, false);
   });
 
   it("constructs zellij action new-pane with -- separator", async () => {
@@ -79,7 +84,7 @@ describe("ZellijTerminalBackend", () => {
       command: ["pi", "--model", "test"],
     });
 
-    expect(capturedArgs).toEqual([
+    assert.deepStrictEqual(capturedArgs, [
       "action", "new-pane",
       "--cwd", "/tmp",
       "--name", "my-pane",
@@ -94,14 +99,18 @@ describe("ZellijTerminalBackend", () => {
 
     const backend = new ZellijTerminalBackend(mockExecutor());
 
-    await expect(
-      backend.openCommand({
+    await assert.rejects(
+      () => backend.openCommand({
         cwd: "/tmp",
         name: "test",
         target: { type: "pane", floating: true, direction: "right" },
         command: ["echo"],
       }),
-    ).rejects.toThrow("mutually exclusive");
+      (err: Error) => {
+        assert.ok(err.message.includes("mutually exclusive"));
+        return true;
+      },
+    );
   });
 });
 
@@ -116,7 +125,7 @@ describe("runShell", () => {
     };
 
     await runShell(mockBackend, { command: "echo hello" });
-    expect(capturedCommand).toEqual(["sh", "-lc", "echo hello"]);
+    assert.deepStrictEqual(capturedCommand, ["sh", "-lc", "echo hello"]);
   });
 
   it("uses custom shell", async () => {
@@ -129,7 +138,7 @@ describe("runShell", () => {
     };
 
     await runShell(mockBackend, { command: "echo hello", shell: "bash" });
-    expect(capturedCommand).toEqual(["bash", "-lc", "echo hello"]);
+    assert.deepStrictEqual(capturedCommand, ["bash", "-lc", "echo hello"]);
   });
 });
 
@@ -144,7 +153,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { model: "  gpt-4  " });
-    expect(capturedCommand).toEqual(["pi", "--model", "gpt-4"]);
+    assert.deepStrictEqual(capturedCommand, ["pi", "--model", "gpt-4"]);
   });
 
   it("does not push blank model", async () => {
@@ -157,7 +166,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { model: "   " });
-    expect(capturedCommand).toEqual(["pi"]);
+    assert.deepStrictEqual(capturedCommand, ["pi"]);
   });
 
   it("trims thinkingLevel and omits when blank", async () => {
@@ -170,7 +179,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { thinkingLevel: "  high  " });
-    expect(capturedCommand).toEqual(["pi", "--thinking", "high"]);
+    assert.deepStrictEqual(capturedCommand, ["pi", "--thinking", "high"]);
   });
 
   it("does not push blank thinkingLevel", async () => {
@@ -183,7 +192,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { thinkingLevel: "   " });
-    expect(capturedCommand).toEqual(["pi"]);
+    assert.deepStrictEqual(capturedCommand, ["pi"]);
   });
 
   it("prefixes prompt starting with -", async () => {
@@ -196,7 +205,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { prompt: "-foo" });
-    expect(capturedCommand).toEqual(["pi", "\n-foo"]);
+    assert.deepStrictEqual(capturedCommand, ["pi", "\n-foo"]);
   });
 
   it("prefixes prompt starting with @", async () => {
@@ -209,7 +218,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { prompt: "@REVIEW.md" });
-    expect(capturedCommand).toEqual(["pi", "\n@REVIEW.md"]);
+    assert.deepStrictEqual(capturedCommand, ["pi", "\n@REVIEW.md"]);
   });
 
   it("does not prefix regular prompt", async () => {
@@ -222,7 +231,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { prompt: "hello world" });
-    expect(capturedCommand).toEqual(["pi", "hello world"]);
+    assert.deepStrictEqual(capturedCommand, ["pi", "hello world"]);
   });
 
   it("does not push empty prompt", async () => {
@@ -235,7 +244,7 @@ describe("spawnPi", () => {
     };
 
     await spawnPi(mockBackend, { prompt: "   " });
-    expect(capturedCommand).toEqual(["pi"]);
+    assert.deepStrictEqual(capturedCommand, ["pi"]);
   });
 
   it("returns trimmed thinkingLevel in result", async () => {
@@ -246,7 +255,7 @@ describe("spawnPi", () => {
     };
 
     const result = await spawnPi(mockBackend, { thinkingLevel: "  high  " });
-    expect(result.thinkingLevel).toBe("high");
+    assert.strictEqual(result.thinkingLevel, "high");
   });
 });
 
@@ -277,7 +286,7 @@ describe("spawnAgent", () => {
     const agent = makeAgent();
     await spawnAgent(mockBackend, { agent, task: "review the diff" });
 
-    expect(capturedCommand).toEqual([
+    assert.deepStrictEqual(capturedCommand, [
       "pi",
       "--model", "claude-sonnet-4-20250514",
       "--thinking", "high",
@@ -299,8 +308,8 @@ describe("spawnAgent", () => {
     const agent = makeAgent({ model: undefined });
     await spawnAgent(mockBackend, { agent });
 
-    expect(capturedCommand).not.toContain("--model");
-    expect(capturedCommand).toEqual([
+    assert.ok(!capturedCommand!.includes("--model"));
+    assert.deepStrictEqual(capturedCommand, [
       "pi",
       "--thinking", "high",
       "--tools", "read,grep,find",
@@ -320,7 +329,7 @@ describe("spawnAgent", () => {
     const agent = makeAgent({ thinkingLevel: undefined });
     await spawnAgent(mockBackend, { agent });
 
-    expect(capturedCommand).not.toContain("--thinking");
+    assert.ok(!capturedCommand!.includes("--thinking"));
   });
 
   it("omits tools when empty array", async () => {
@@ -335,7 +344,7 @@ describe("spawnAgent", () => {
     const agent = makeAgent({ tools: [] });
     await spawnAgent(mockBackend, { agent });
 
-    expect(capturedCommand).not.toContain("--tools");
+    assert.ok(!capturedCommand!.includes("--tools"));
   });
 
   it("omits system prompt when empty", async () => {
@@ -350,7 +359,7 @@ describe("spawnAgent", () => {
     const agent = makeAgent({ systemPrompt: "" });
     await spawnAgent(mockBackend, { agent });
 
-    expect(capturedCommand).not.toContain("--append-system-prompt");
+    assert.ok(!capturedCommand!.includes("--append-system-prompt"));
   });
 
   it("omits task when not provided", async () => {
@@ -365,7 +374,7 @@ describe("spawnAgent", () => {
     const agent = makeAgent();
     await spawnAgent(mockBackend, { agent });
 
-    expect(capturedCommand).not.toContain("Task:");
+    assert.ok(!capturedCommand!.includes("Task:"));
   });
 
   it("uses default pane name agent-<name>", async () => {
@@ -379,7 +388,7 @@ describe("spawnAgent", () => {
 
     const agent = makeAgent({ name: "my-agent" });
     await spawnAgent(mockBackend, { agent });
-    expect(capturedName).toBe("agent-my-agent");
+    assert.strictEqual(capturedName, "agent-my-agent");
   });
 
   it("uses custom name when provided", async () => {
@@ -393,7 +402,7 @@ describe("spawnAgent", () => {
 
     const agent = makeAgent();
     await spawnAgent(mockBackend, { agent, name: "custom-pane" });
-    expect(capturedName).toBe("custom-pane");
+    assert.strictEqual(capturedName, "custom-pane");
   });
 
   it("returns agent metadata in result", async () => {
@@ -406,11 +415,11 @@ describe("spawnAgent", () => {
     const agent = makeAgent({ source: "project" });
     const result = await spawnAgent(mockBackend, { agent, task: "do stuff" });
 
-    expect(result.agent).toBe("reviewer");
-    expect(result.source).toBe("project");
-    expect(result.model).toBe("claude-sonnet-4-20250514");
-    expect(result.thinkingLevel).toBe("high");
-    expect(result.tools).toEqual(["read", "grep", "find"]);
-    expect(result.id).toBe("terminal_5");
+    assert.strictEqual(result.agent, "reviewer");
+    assert.strictEqual(result.source, "project");
+    assert.strictEqual(result.model, "claude-sonnet-4-20250514");
+    assert.strictEqual(result.thinkingLevel, "high");
+    assert.deepStrictEqual(result.tools, ["read", "grep", "find"]);
+    assert.strictEqual(result.id, "terminal_5");
   });
 });

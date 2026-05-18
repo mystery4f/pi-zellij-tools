@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -77,10 +78,10 @@ Project prompt.`,
       { cwd: tempDir, hasUI: true, ui: { confirm: async () => true } },
     );
 
-    expect(result.isError).toBeUndefined();
-    expect(result.content[0].text).toContain("scope: project");
-    expect(result.details.agents).toHaveLength(1);
-    expect(result.details.agents[0].source).toBe("project");
+    assert.strictEqual(result.isError, undefined);
+    assert.ok(result.content[0].text.includes("scope: project"));
+    assert.strictEqual(result.details.agents.length, 1);
+    assert.strictEqual(result.details.agents[0].source, "project");
   });
 
   it("uses project agent for both: when names collide", async () => {
@@ -92,9 +93,9 @@ Project prompt.`,
       { cwd: tempDir, hasUI: false, ui: { confirm: async () => true } },
     );
 
-    expect(result.isError).toBeUndefined();
-    expect(result.details.source).toBe("project");
-    expect(result.details.agent).toBe("reviewer");
+    assert.strictEqual(result.isError, undefined);
+    assert.strictEqual(result.details.source, "project");
+    assert.strictEqual(result.details.agent, "reviewer");
   });
 
   it("errors on conflicting prefix scope and agentScope", async () => {
@@ -106,8 +107,8 @@ Project prompt.`,
       { cwd: tempDir, hasUI: true, ui: { confirm: async () => true } },
     );
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Conflicting scope");
+    assert.strictEqual(result.isError, true);
+    assert.ok(result.content[0].text.includes("Conflicting scope"));
   });
 
   afterEach(() => {
