@@ -11,6 +11,8 @@ export interface OpenCommandOptions {
   name: string;
   target: TerminalTarget;
   command: string[];
+  /** Shell to use for wrapping the command. Defaults to "sh". */
+  shell?: string;
 }
 
 export interface OpenCommandResult {

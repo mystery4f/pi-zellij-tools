@@ -2,6 +2,14 @@ import type { TerminalBackend, OpenCommandOptions, OpenCommandResult, CommandExe
 
 const MAX_OUTPUT_LENGTH = 4096;
 
+/**
+ * Quote a single argument for POSIX shells using single quotes.
+ * Embedded single quotes are escaped with `'\''`.
+ */
+export function shellQuote(arg: string): string {
+  return "'" + arg.replace(/'/g, "'\\''") + "'";
+}
+
 function truncate(str: string, max = MAX_OUTPUT_LENGTH): string {
   if (str.length <= max) return str;
   return str.slice(0, max) + `\n...[truncated ${str.length - max} chars]`;
@@ -70,7 +78,16 @@ export class ZellijTerminalBackend implements TerminalBackend {
       args.push("--direction", target.direction);
     }
 
-    args.push("--", ...command);
+    // Always wrap the command in `<shell> -lc` to avoid Zellij's `new-pane`
+    // silently failing when COMMAND... consists of a single argument (e.g. just
+    // `pi`).  By going through a shell we guarantee the pane always opens.
+    //
+    // Each argument is single-quote-escaped so that the shell correctly
+    // reconstructs the original argument vector, preserving boundaries even
+    // when arguments contain spaces or special characters.
+    const shell = options.shell ?? "sh";
+    const shellCmd = command.map(shellQuote).join(" ");
+    args.push("--", shell, "-lc", shellCmd);
 
     return this.cli.newPane(args, signal);
   }

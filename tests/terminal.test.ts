@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { ZellijCli, ZellijTerminalBackend } from "../src/terminal/zellij.js";
+import { ZellijCli, ZellijTerminalBackend, shellQuote } from "../src/terminal/zellij.js";
 import { runShell, spawnPi, spawnAgent } from "../src/terminal/actions.js";
 import type { AgentConfig } from "../src/agents/discovery.js";
 import type { CommandExecutor, CommandExecutorResult, TerminalBackend } from "../src/terminal/types.js";
@@ -14,6 +14,32 @@ function mockExecutor(result: Partial<CommandExecutorResult> = {}): CommandExecu
     ...result,
   });
 }
+
+describe("shellQuote", () => {
+  it("wraps argument in single quotes", () => {
+    assert.strictEqual(shellQuote("hello"), "'hello'");
+  });
+
+  it("escapes embedded single quotes", () => {
+    assert.strictEqual(shellQuote("it's a test"), "'it'\\''s a test'");
+  });
+
+  it("handles empty string", () => {
+    assert.strictEqual(shellQuote(""), "''");
+  });
+
+  it("preserves spaces", () => {
+    assert.strictEqual(shellQuote("hello world"), "'hello world'");
+  });
+
+  it("preserves CJK characters", () => {
+    assert.strictEqual(shellQuote("\u4f60\u597d"), "'\u4f60\u597d'");
+  });
+
+  it("handles multiple single quotes", () => {
+    assert.strictEqual(shellQuote("a'b'c"), "'a'\\''b'\\''c'");
+  });
+});
 
 describe("ZellijCli.parsePaneId", () => {
   it("parses terminal_1", () => {
@@ -89,7 +115,7 @@ describe("ZellijTerminalBackend", () => {
       "--cwd", "/tmp",
       "--name", "my-pane",
       "--direction", "right",
-      "--", "pi", "--model", "test",
+      "--", "sh", "-lc", "'pi' '--model' 'test'",
     ]);
   });
 
@@ -115,30 +141,33 @@ describe("ZellijTerminalBackend", () => {
 });
 
 describe("runShell", () => {
-  it("uses default shell sh", async () => {
+  it("passes raw command and default shell", async () => {
     let capturedCommand: string[] | undefined;
+    let capturedShell: string | undefined;
     const mockBackend: TerminalBackend = {
       async openCommand(options) {
         capturedCommand = options.command;
+        capturedShell = options.shell;
         return { id: null, stdout: "" };
       },
     };
 
     await runShell(mockBackend, { command: "echo hello" });
-    assert.deepStrictEqual(capturedCommand, ["sh", "-lc", "echo hello"]);
+    assert.deepStrictEqual(capturedCommand, ["echo hello"]);
+    assert.strictEqual(capturedShell, "sh");
   });
 
-  it("uses custom shell", async () => {
-    let capturedCommand: string[] | undefined;
+  it("passes custom shell", async () => {
+    let capturedShell: string | undefined;
     const mockBackend: TerminalBackend = {
       async openCommand(options) {
-        capturedCommand = options.command;
+        capturedShell = options.shell;
         return { id: null, stdout: "" };
       },
     };
 
     await runShell(mockBackend, { command: "echo hello", shell: "bash" });
-    assert.deepStrictEqual(capturedCommand, ["bash", "-lc", "echo hello"]);
+    assert.strictEqual(capturedShell, "bash");
   });
 });
 

@@ -21,8 +21,10 @@ export async function runShell(
   const shell = options.shell ?? "sh";
   const target = options.target ?? DEFAULT_TARGET;
 
+  // openCommand wraps everything in `<shell> -lc` already, so we pass the raw
+  // user command string directly.
   const result = await backend.openCommand(
-    { cwd, name, target, command: [shell, "-lc", options.command] },
+    { cwd, name, target, command: [options.command], shell },
     signal,
   );
 
